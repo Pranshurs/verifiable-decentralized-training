@@ -1,5 +1,7 @@
 # Verifiable Decentralized Model Training (Codespaces-ready)
 
+[![Open in Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/Pranshurs/verifiable-decentralized-training/codespaces/new)
+
 This repository is a **Codespaces-ready** proof-of-concept for *verifiable decentralized model training*. It simulates training across multiple nodes, produces cryptographic checkpoints, and verifies training integrity using simple hash-chains and Merkle-like proofs.
 
 **Goal:** show infrastructure + crypto + ML systems thinking for grad-school portfolio (MIT/Stanford/CMU).
