@@ -7,7 +7,14 @@ from pydantic import ValidationError
 
 from stesh_mvp.chain import dev_keys
 from stesh_mvp.crypto import CanonicalError, address_of, canonical
-from stesh_mvp.jobs import InputRef, JobSpec, Requirements, SignedJob, new_nonce, sign_job
+from stesh_mvp.jobs import (
+    InputRef,
+    JobSpec,
+    Requirements,
+    SignedJob,
+    new_nonce,
+    sign_job,
+)
 
 KEY, OTHER = dev_keys(2)
 

@@ -106,19 +106,21 @@ def verify(job: SignedJob, signed: SignedManifest, artifacts_dir: Path, assigned
         return r
     r.add("on-chain commitment", onchain_result_hash == m.result_hash(),
           f"chain {onchain_result_hash[:12]}…, manifest {m.result_hash()[:12]}…")
-    r.add("input commitment", m.input_root == input_root(spec.inputs))
+    r.add("input commitment", m.input_root == input_root(spec.inputs), "manifest input root differs from the signed inputs")
     for ref in spec.inputs:
-        r.add(f"coder input {ref.name}", sha256_file(data_files[ref.name]) == ref.sha256)
+        r.add(f"coder input {ref.name}", sha256_file(data_files[ref.name]) == ref.sha256, "local file differs from the signed hash")
     on_disk = {str(p.relative_to(artifacts_dir)) for p in artifacts_dir.rglob("*") if p.is_file()}
     r.add("artifact set", on_disk == set(m.artifacts),
           f"missing {sorted(set(m.artifacts) - on_disk)}, extra {sorted(on_disk - set(m.artifacts))}")
     for name, a in m.artifacts.items():
         p = artifacts_dir / name
         if p.is_file():
-            r.add(f"hash {name}", sha256_file(p) == a.sha256)
-    r.add("artifact root", m.artifact_root == merkle_root((n, a.sha256) for n, a in m.artifacts.items()))
+            actual = sha256_file(p)
+            r.add(f"hash {name}", actual == a.sha256, f"committed {a.sha256[:12]}…, file is {actual[:12]}…")
+    r.add("artifact root", m.artifact_root == merkle_root((n, a.sha256) for n, a in m.artifacts.items()),
+          "Merkle root does not match the listed artifacts")
     for out in spec.expected_outputs:
-        r.add(f"output {out}", out in m.artifacts)
+        r.add(f"output {out}", out in m.artifacts, "expected output missing")
     if r.failures:
         return r
 
@@ -137,13 +139,16 @@ def verify(job: SignedJob, signed: SignedManifest, artifacts_dir: Path, assigned
     def ckpt(e: int) -> dict:
         return json.loads((artifacts_dir / f"checkpoints/epoch-{e:04d}.json").read_text())
 
-    r.add("initial state", _states_equal(ckpt(0), logreg_sgd.init_state(X, y, digest, params)))
+    r.add("initial state", _states_equal(ckpt(0), logreg_sgd.init_state(X, y, digest, params)),
+          "checkpoint 0 is not the state derived from the coder's data and params")
     r.sampled_epochs = challenge_epochs(secret, m.result_hash(), epochs, epochs if k is None else k)
     for e in r.sampled_epochs:
-        r.add(f"epoch {e} re-executed", _states_equal(logreg_sgd.run_epoch(X, y, ckpt(e - 1), params), ckpt(e)))
+        mine, theirs = logreg_sgd.run_epoch(X, y, ckpt(e - 1), params), ckpt(e)
+        diff = float(np.max(np.abs(np.asarray(mine["w"]) - np.asarray(theirs["w"])))) if len(mine["w"]) == len(theirs.get("w", [])) else float("inf")
+        r.add(f"epoch {e} re-executed", _states_equal(mine, theirs), f"checkpoint differs from recomputation (max |Δw| = {diff:.3g})")
     final = ckpt(epochs)
     model = json.loads((artifacts_dir / "model.json").read_text())
-    r.add("model = final checkpoint", _states_equal({**final, **model}, final))
+    r.add("model = final checkpoint", _states_equal({**final, **model}, final), "model.json differs from the last checkpoint")
     reported = json.loads((artifacts_dir / "metrics.json").read_text())
     recomputed = logreg_sgd.metrics(X, y, final, params)
     r.add("metrics recomputed", all(math.isclose(reported.get(k_, -1), v, rel_tol=1e-9, abs_tol=1e-12)

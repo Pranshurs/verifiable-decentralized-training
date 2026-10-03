@@ -13,8 +13,8 @@ import re
 import secrets
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
 from eth_utils import is_checksum_address
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .crypto import canonical, keccak_hex, recover, sign_digest
 

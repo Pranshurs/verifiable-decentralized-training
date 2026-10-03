@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stesh-mvp"
+version = "0.1.0"
+description = "Research-to-MVP implementation of verifiable decentralised compute, derived from the May 2025 STESH white paper."
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26",
+  "pydantic>=2.6",
+  "eth-account>=0.13",
+  "web3>=7.0",
+  "cryptography>=42",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff==0.8.6"]
+
+[project.scripts]
+stesh-mvp-demo = "stesh_mvp.demo:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]

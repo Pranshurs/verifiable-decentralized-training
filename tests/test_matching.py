@@ -10,7 +10,14 @@ import pytest
 from stesh_mvp.chain import dev_keys
 from stesh_mvp.crypto import address_of
 from stesh_mvp.jobs import Requirements
-from stesh_mvp.providers import ProviderProfile, ProviderState, Registry, ineligibility, match, sign_profile
+from stesh_mvp.providers import (
+    ProviderProfile,
+    ProviderState,
+    Registry,
+    ineligibility,
+    match,
+    sign_profile,
+)
 
 RT = "python3.12-numpy2"
 
