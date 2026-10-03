@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .chain import Anvil, Escrow, dev_keys
+from .checkpoints import CheckpointStore, new_job_key
 from .crypto import address_of, sha256_file
 from .jobs import InputRef, JobSpec, Requirements, SignedJob, new_nonce, sign_job
 from .protocol import Coordinator, ProviderAgent, VerifierService
@@ -135,3 +136,51 @@ def fabricate_outputs(out_dir: Path, params: dict, seed: int = 0) -> None:
     (out_dir / "model.json").write_text(json.dumps({k: state[k] for k in ("workload", "data_sha256", "epoch", "w", "b", "mean", "std")}, sort_keys=True) + "\n")
     (out_dir / "metrics.json").write_text(json.dumps({"accuracy": 0.99, "epochs": params["epochs"], "holdout_rows": 114,
                                                       "log_loss": 0.05, "roc_auc": 0.999}, sort_keys=True) + "\n")
+
+
+# -- checkpoint recovery ------------------------------------------------------------
+
+def seal_checkpoints(store: CheckpointStore, key: bytes, job_id: str, out_dir: Path) -> tuple[int, float]:
+    """Provider side: seal every checkpoint the container wrote. Returns (highest seq, seconds)."""
+    t0 = time.perf_counter()
+    top = -1
+    for p in sorted((out_dir / "checkpoints").glob("epoch-*.json")):
+        seq = int(p.stem.split("-")[1])
+        store.seal(key, job_id, seq, p.read_bytes())
+        top = max(top, seq)
+    return top, time.perf_counter() - t0
+
+
+def recovery_run(net: Network, job: SignedJob, fail_after_epoch: int) -> dict:
+    """Provider A stops after ``fail_after_epoch`` epochs (fault injection); the coordinator
+    reassigns on-chain; provider B resumes from A's latest valid checkpoint; the verifier
+    checks the whole chain; B is paid."""
+    data = {"data.csv": DATA}
+    store = CheckpointStore(net.workdir / "checkpoint-store")
+    key = new_job_key()  # coder-generated; given to assigned providers and the verifier
+    first = fund_and_admit(net, job)
+    a = agent_for(net, first.provider)
+    out_a, res_a = a.execute(job, data, env={"STESH_STOP_AFTER_EPOCH": str(fail_after_epoch)})
+    announced, seal_s = seal_checkpoints(store, key, job.job_id, out_a)
+    failed = res_a.exit_code != 0
+    t0 = time.perf_counter()
+    second = net.coordinator.provider_failed(job.job_id)
+    b = agent_for(net, second.provider)
+    meta, plaintext = store.latest_valid(key, job.job_id, min_seq=announced)
+    resume = b.workdir / "resume.json"
+    resume.parent.mkdir(parents=True, exist_ok=True)
+    resume.write_bytes(plaintext)
+    out_b, res_b = b.execute(job, data, resume=resume)
+    # B's result must cover the whole chain: restore A's earlier checkpoints from storage.
+    for m in store.index(job.job_id):
+        if m.seq <= meta.seq:
+            (out_b / "checkpoints" / f"epoch-{m.seq:04d}.json").write_bytes(store.open(key, m))
+    signed = b.commit(job, out_b, net.escrow)
+    recover_s = time.perf_counter() - t0
+    report = net.verifier.judge(job, signed, out_b, net.escrow, data)
+    net.coordinator.finished(job.job_id)
+    tx = net.verifier.settle(job.job_id, net.escrow) if report.accepted else None
+    return {"provider_a": a.address, "provider_b": b.address, "a_failed": failed, "a_exit": res_a.exit_code,
+            "resumed_from_seq": meta.seq, "b_exit": res_b.exit_code, "report": report, "release_tx": tx,
+            "final_state": net.escrow.job(job.job_id)["state"], "seal_seconds": seal_s,
+            "checkpoints_sealed": announced + 1, "recovery_seconds": recover_s, "store": store, "key": key}
