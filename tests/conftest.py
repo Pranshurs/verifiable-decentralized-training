@@ -26,6 +26,7 @@ needs_stack = pytest.mark.skipif(
 def runs_dir():
     # Under the repo (not /tmp) so Docker Desktop/Colima can mount it into the container.
     d = ROOT / ".runs" / "tests"
-    shutil.rmtree(d, ignore_errors=True)
+    if d.exists():
+        shutil.rmtree(d)  # fail loudly if leftovers can't be removed
     d.mkdir(parents=True)
     yield d

@@ -5,14 +5,17 @@ string. The registry below maps that name to a locally built image whose entrypo
 fixed. Untrusted input reaches the container only as files in a read-only ``/in``.
 
 Container settings: no network, read-only root filesystem, every Linux capability
-dropped, no-new-privileges, unprivileged uid 65534, PID/memory/CPU limits from the signed
-requirements, a small tmpfs ``/tmp``, and ``/out`` as the only writable mount. On timeout,
+dropped, no-new-privileges, PID/memory/CPU limits from the signed requirements, a small
+tmpfs ``/tmp``, and ``/out`` as the only writable mount. It runs as the provider agent's
+own unprivileged uid:gid, so outputs belong to the agent that has to hash and hand them
+over. If the agent itself runs as root, the container runs as nobody (65534). On timeout,
 the container is killed and removed.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import time
@@ -48,12 +51,17 @@ def stage_inputs(spec: JobSpec, job_id: str, data_files: dict[str, Path], in_dir
         shutil.copyfile(resume, in_dir / "resume.json")
 
 
+def container_user() -> str:
+    uid, gid = os.getuid(), os.getgid()
+    return "65534:65534" if uid == 0 else f"{uid}:{gid}"
+
+
 def docker_args(spec: JobSpec, name: str, in_dir: Path, out_dir: Path, env: dict[str, str]) -> list[str]:
     req = spec.requirements
     args = [
         "docker", "run", "--name", name, "--rm",
         "--network", "none", "--read-only", "--cap-drop", "ALL",
-        "--security-opt", "no-new-privileges", "--user", "65534:65534",
+        "--security-opt", "no-new-privileges", "--user", container_user(),
         "--pids-limit", "64", "--memory", f"{req.ram_mb}m", "--memory-swap", f"{req.ram_mb}m",
         "--cpus", str(req.cpu_cores), "--tmpfs", "/tmp:size=16m,noexec",
         "-v", f"{in_dir.resolve()}:/in:ro", "-v", f"{out_dir.resolve()}:/out:rw",
@@ -67,7 +75,8 @@ def run(spec: JobSpec, in_dir: Path, out_dir: Path, env: dict[str, str] | None =
     if spec.workload not in WORKLOADS:
         raise ValueError(f"workload {spec.workload} is not allow-listed")
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_dir.chmod(0o777)  # the container writes as uid 65534
+    if container_user() == "65534:65534":
+        out_dir.chmod(0o777)  # root agent: the container writes as nobody
     name = f"stesh-{uuid.uuid4().hex[:12]}"
     t0 = time.perf_counter()
     proc = subprocess.Popen(docker_args(spec, name, in_dir, out_dir, env or {}),

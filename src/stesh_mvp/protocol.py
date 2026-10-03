@@ -134,7 +134,8 @@ class ProviderAgent:
     def execute(self, job: SignedJob, data_files: dict[str, Path], resume: Path | None = None,
                 env: dict[str, str] | None = None) -> tuple[Path, executor.ExecResult]:
         run_dir = self.workdir / job.job_id[2:14] / self.address[2:10]
-        shutil.rmtree(run_dir, ignore_errors=True)
+        if run_dir.exists():
+            shutil.rmtree(run_dir)
         in_dir, out_dir = run_dir / "in", run_dir / "out"
         executor.stage_inputs(job.spec, job.job_id, data_files, in_dir, resume)
         result = executor.run(job.spec, in_dir, out_dir, env)

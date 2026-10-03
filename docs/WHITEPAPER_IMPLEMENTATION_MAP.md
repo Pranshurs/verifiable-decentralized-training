@@ -34,7 +34,7 @@ Status values:
 | Provider matching on hardware and availability | §3.1, §6.1, §6.4 | `providers.py`: deterministic filter (CPU, RAM, GPU, VRAM, runtime, availability, capacity) and ranking | IMPLEMENTED | Hardware claims are signed but self-reported; there's no attestation |
 | Reputation in matching | §3.1, §5, §6.4 | A `reputation` ranking key exists; every provider scores 0.0 | DEFERRED | No reputation system |
 | Matching < 5 s | §3.5, §6.3 | Measured: 41 ms median over 100,000 providers on one machine | IMPLEMENTED (measured) | In-memory and single-process; there's no network discovery |
-| Software containers, isolated | §3.1, §5, §6.1 | `executor.py`: Docker with no network, a read-only root, capabilities dropped, uid 65534, limits, a timeout, and allow-listed images only | IMPLEMENTED | A container isn't a VM; escape risk is in the threat model |
+| Software containers, isolated | §3.1, §5, §6.1 | `executor.py`: Docker with no network, a read-only root, capabilities dropped, an unprivileged uid (the agent's own, or nobody if the agent is root), limits, a timeout, and allow-listed images only | IMPLEMENTED | A container isn't a VM; escape risk is in the threat model |
 | Static code analysis of tasks | §5 | Not built. Jobs can't carry code: they name an allow-listed workload | DEFERRED | Avoids the need for now; arbitrary user code is out of scope |
 | PyTorch/TensorFlow workloads | §6.1 | One real workload: numpy logistic-regression SGD on WDBC | DEFERRED (other frameworks) | The verifier needs a re-executor per workload |
 | GPU execution | §2, §6.1 | GPU requirements are matched, but nothing runs on a GPU | DEFERRED | Runs on ordinary CPUs |
