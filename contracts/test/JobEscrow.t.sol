@@ -25,6 +25,29 @@ contract ReentrantProvider {
     }
 }
 
+/// A coder contract that re-enters refund() when its refund arrives.
+contract ReentrantCoder {
+    JobEscrow public escrow;
+    bytes32 public jobId;
+    uint256 public reentries;
+
+    constructor(JobEscrow e) { escrow = e; }
+
+    function fund(bytes32 id, address verifier, uint64 deadline) external payable {
+        jobId = id;
+        escrow.fund{value: msg.value}(id, verifier, deadline);
+    }
+
+    function refund() external { escrow.refund(jobId); }
+
+    receive() external payable {
+        if (reentries < 3) {
+            reentries++;
+            try escrow.refund(jobId) {} catch {}
+        }
+    }
+}
+
 contract JobEscrowTest is Test {
     JobEscrow escrow;
     address coordinator = makeAddr("coordinator");
@@ -224,6 +247,17 @@ contract JobEscrowTest is Test {
         escrow.release(JOB);
         assertTrue(bad.reentered());
         assertEq(address(bad).balance, PAY);
+    }
+
+    function test_reentrant_coder_is_refunded_exactly_once() public {
+        ReentrantCoder bad = new ReentrantCoder(escrow);
+        vm.deal(address(bad), 0);
+        vm.deal(address(this), PAY);
+        bad.fund{value: PAY}(JOB, verifier, deadline);
+        vm.deal(address(escrow), address(escrow).balance + 5 ether); // other jobs' funds
+        bad.refund();
+        assertEq(address(bad).balance, PAY);
+        assertEq(address(escrow).balance, 5 ether);
     }
 
     function testFuzz_no_one_but_coder_or_verifier_releases(address caller) public {
