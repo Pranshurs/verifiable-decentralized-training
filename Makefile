@@ -1,4 +1,4 @@
-.PHONY: setup contracts image test contract-test demo bench
+.PHONY: setup contracts image test contract-test demo bench zk
 
 setup:
 	pip install -e ".[dev]"
@@ -20,3 +20,6 @@ demo: contracts image
 
 bench: contracts image
 	python -m stesh_mvp.bench --runs 5 --out benchmarks/results.json
+
+zk:
+	zk/run.sh

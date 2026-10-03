@@ -2,3 +2,7 @@
 contracts/out/
 contracts/cache/
 __pycache__/
+zk/build/
+zk/node_modules/
+zk/package*.json
+*.egg-info/

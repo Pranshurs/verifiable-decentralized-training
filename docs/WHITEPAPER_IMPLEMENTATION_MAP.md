@@ -43,7 +43,7 @@ Status values:
 | Job continuity: resume on another system | §8.2 | Provider A stops; on-chain reassign; B resumes from the latest valid checkpoint; full chain verified | IMPLEMENTED | Failure detection is a signal to the coordinator, not a heartbeat or liveness protocol |
 | Proof-of-Compute: verify output | §4 | `verifier.py`: integrity layer (signature, job binding, input/artifact commitments, on-chain hash) plus re-execution of epoch transitions chosen after commitment, plus metric recomputation | IMPLEMENTED (not ZK) | See VERIFICATION.md for exactly what it guarantees |
 | Merkle root hashing | §4.2, Glossary | Merkle roots over the input and artifact hashes, domain-separated | IMPLEMENTED | |
-| Zero-knowledge proofs of task completion | §3.1, §4, §5, §6 | Not used by the MVP verifier | DEFERRED / EXPERIMENTAL | See "ZK" in the README. General ZK proof of ML training remains research |
+| Zero-knowledge proofs of task completion | §3.1, §4, §5, §6 | `zk/sgd_step.circom`: Groth16 proof of one fixed-point linear-regression gradient step against salted Poseidon commitments (0.65 s to prove, 3,153 constraints). Not used by the MVP verifier or escrow | EXPERIMENTAL (single step) / DEFERRED (general) | docs/ZK_EXPERIMENT.md. General ZK proof of ML training remains research |
 | Proof generation 10–30 s / < 5 s | §4.3, §6.5, §13 | — | DEFERRED | No ZK proof; MVP verification takes about 0.15 s for this workload |
 | Protecting coders' code and data from providers | §4.1, §5 | Not achieved: the provider sees the data, and so does the verifier | DEFERRED | Needs ZK, TEEs or MPC |
 | Erasure proofs (data deletion post-task) | §5, §12 | — | DEFERRED | |
