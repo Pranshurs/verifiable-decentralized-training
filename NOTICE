@@ -1,0 +1,16 @@
+STESH research-to-MVP (verifiable-decentralized-training)
+Copyright 2026 Pranshu Raj
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Third-party material:
+
+- examples/data/wdbc.csv is the Breast Cancer Wisconsin (Diagnostic) dataset: W. Wolberg,
+  O. Mangasarian, N. Street and W. Street, UCI Machine Learning Repository,
+  https://doi.org/10.24432/C5DW2B. Licensed under CC BY 4.0, and redistributed here with
+  that attribution. The columns are those of scikit-learn's copy; the label column is
+  1 = malignant.
+- contracts/lib/forge-std is a git submodule (Forge Standard Library, MIT OR Apache-2.0).
+- zk/ downloads circom2, snarkjs and circomlib at run time. They are GPL-3.0 and are not
+  included in this repository. Compiled circuits built from zk/sgd_step.circom include
+  circomlib and must be distributed under GPL-3.0 terms.
