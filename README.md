@@ -1,28 +1,39 @@
-# STESH: Scalable Tokenised Ecosystem for Shared Hardware
+# STESH: verifiable compute for untrusted providers
 
 [![ci](https://github.com/Pranshurs/verifiable-decentralized-training/actions/workflows/ci.yml/badge.svg)](https://github.com/Pranshurs/verifiable-decentralized-training/actions/workflows/ci.yml)
 
-**Research-to-MVP implementation derived from Pranshu Raj's May 2025 white paper,**
-*STESH: Decentralised GPU/CPU Rental for India's AI Compute*.
+**Research-to-MVP implementation of my May 2025 white paper, "STESH: Scalable Tokenised
+Ecosystem for Shared Hardware."**
 
-The paper proposes a peer-to-peer compute market:
-- coders submit signed jobs;
-- providers run them in containers;
-- the result is verified;
-- an escrow pays the provider.
+**The problem.** A coder pays a stranger's machine to run a workload. How can an untrusted
+compute provider execute that paid job and prove enough about the result that settlement
+can happen safely, so that honest work gets paid and fabricated, tampered or replayed
+results don't?
 
-This repository builds the smallest version of that loop that actually runs, and proves
-the property that matters most: **an honest provider gets paid, and a bad result does
-not.**
+**This repository** answers that for one real workload, end to end. It runs the smallest
+loop that works:
+1. a signed job specification;
+2. deterministic hardware matching;
+3. execution in a locked-down container;
+4. cryptographic commitments to the result;
+5. an independent verifier that re-executes what the provider claims to have computed;
+6. an escrow contract that pays only after the verifier accepts that exact result.
 
-> The white paper is a pre-beta proposal. Its figures (₹62–83/hour, 10–30 s proofs,
-> > 95% uptime, < 5 s matching, a 15-system / 50-task validation, a 100–1,000-user beta)
-> are **targets**, not results, and nothing here claims they were achieved. Measured MVP
-> numbers are below, next to the targets. Every paper concept is mapped to
+Failed providers are recovered from encrypted checkpoints.
+
+> The white paper is a pre-beta proposal. Its figures are **targets, not results**, and
+> nothing here claims they were achieved:
+> - ₹62–83/hour
+> - 10–30 s proofs
+> - over 95% uptime
+> - under 5 s matching
+> - a 15-system / 50-task validation
+> - a 100–1,000-user beta
+>
+> Measured MVP numbers are below, next to the targets. Every paper concept is mapped to
 > IMPLEMENTED / SIMULATED / EXPERIMENTAL / DEFERRED in
-> [`docs/WHITEPAPER_IMPLEMENTATION_MAP.md`](docs/WHITEPAPER_IMPLEMENTATION_MAP.md).
-> This historical research project is separate from any later work that reuses the
-> STESH name.
+> [`docs/WHITEPAPER_IMPLEMENTATION_MAP.md`](docs/WHITEPAPER_IMPLEMENTATION_MAP.md). This
+> historical research project is separate from any later work that reuses the STESH name.
 
 ## What works end to end
 
@@ -239,6 +250,14 @@ Details and limits are in [`docs/ZK_EXPERIMENT.md`](docs/ZK_EXPERIMENT.md). Run 
 - Decentralised storage is simulated with a content-addressed local directory. Job keys
   are shared out of band.
 - There's no UPI, pricing, reputation, disputes or governance (all deferred; see the map).
+
+## License
+
+The code is licensed under [Apache-2.0](LICENSE). Third-party material is listed in
+[`NOTICE`](NOTICE):
+- the WDBC example data (CC BY 4.0, attributed);
+- forge-std (MIT or Apache-2.0);
+- the GPL-3.0 ZK toolchain, which is downloaded at run time and not included.
 
 ## History
 
