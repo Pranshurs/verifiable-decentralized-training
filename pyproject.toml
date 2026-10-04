@@ -7,6 +7,8 @@ name = "stesh-mvp"
 version = "0.1.0"
 description = "Research-to-MVP implementation of verifiable decentralised compute, derived from the May 2025 STESH white paper."
 requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
 dependencies = [
   "numpy>=1.26",
   "pydantic>=2.6",
